@@ -24,29 +24,37 @@ namespace ElectronicQueueServer.Controllers
         }
 
         [HttpPost, Route("login")]
-        public IActionResult login([FromBody] LoginModel loginModel)
+        public async Task<IActionResult> login([FromBody] LoginModel loginModel)
         {
-            var user = appDB.GetUserByLoginModel(loginModel);
-            if ( user != null)
+            try
             {
-                var tokenOptions = new JwtConfigurator().GetJwtSecurityToken(user.Role);
-                var tokenString = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
-                return Ok(new { Token = tokenString, id =  user.Id.ToString()});
-            }
+                var user = await appDB.GetUserByLoginModel(loginModel);
 
-            return Unauthorized();
+                if (user != null)
+                {
+                    var tokenOptions = new JwtConfigurator().GetJwtSecurityToken(user.Role);
+                    var tokenString = new JwtSecurityTokenHandler().WriteToken(tokenOptions);
+                    return Ok(new { token = tokenString, id = user.Id.ToString(), role = user.Role.ToString().ToUpper() });
+                }
+
+                return Unauthorized();
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, e.Message);
+            }
         }
 
         [HttpPost, Route("signup")]
-        public IActionResult Post([FromBody] User user)
+        public async Task<IActionResult> Post([FromBody] User user)
         {
             try
             {
                 user.Role = UserRole.Client;
-                appDB.AddUser(user);
+                await appDB.AddUser(user);
                 return Ok();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return StatusCode(500, e.Message);
             }

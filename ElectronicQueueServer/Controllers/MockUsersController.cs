@@ -28,9 +28,9 @@ namespace ElectronicQueueServer.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin")]
-        public IEnumerable<User> Get()
+        public async Task<IEnumerable<User>> Get()
         {
-            return appDB.GetAllUsers();
+            return await appDB.GetAllUsers();
         }
     }
 }

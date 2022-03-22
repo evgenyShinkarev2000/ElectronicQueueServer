@@ -20,24 +20,25 @@ namespace ElectronicQueueServer.Models
             Users = ElectonicQueueDB.GetCollection<User>("Users");
         }
 
-        public User GetUserByLoginModel(LoginModel loginModel)
+        public async Task<User> GetUserByLoginModel(LoginModel loginModel)
         {
-            return Users.Find(user => user.Login == loginModel.Login && user.Password == loginModel.Password)?.Single();
+            return await (await Users.FindAsync(user => user.Login == loginModel.Login && user.Password == loginModel.Password))
+                .SingleOrDefaultAsync();
         }
 
-        public IEnumerable<User> GetUsersByRoles(string[] role)
+        public async Task<IEnumerable<User>> GetUsersByRoles(string[] role)
         {
-            return Users.Find(user => role.Contains(user.Role)).ToEnumerable();
+            return (await Users.FindAsync(user => role.Contains(user.Role))).ToEnumerable();
         }
 
-        public IEnumerable<User> GetAllUsers()
+        public async Task<IEnumerable<User>> GetAllUsers()
         {
-            return Users.Find(_ => true).ToEnumerable();
+            return (await Users.FindAsync(_ => true)).ToEnumerable();
         }
 
-        public void AddUser(User user)
+        public async Task AddUser(User user)
         {
-            Users.InsertOne(user);
+            await Users.InsertOneAsync(user);
         }
     }
 }
