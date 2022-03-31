@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Models\Services\" />
+    <Folder Include="services\" />
   </ItemGroup>
 
 </Project>
