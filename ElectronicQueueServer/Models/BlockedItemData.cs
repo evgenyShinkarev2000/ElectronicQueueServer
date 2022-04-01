@@ -13,9 +13,9 @@ namespace ElectronicQueueServer.Models
         public string Status { get; set; }
     }
 
-    public static class BlockedStatus
+    public static class LockedStatus
     {
         public const string Free = "Free";
-        public const string Blocked = "Blocked";
+        public const string Locked = "Locked";
     }
 }

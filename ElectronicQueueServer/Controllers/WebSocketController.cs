@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -54,35 +56,36 @@ namespace ElectronicQueueServer.Controllers
             _locker.EnterReadLock();
             _clients.Add(webSocket);
             _locker.ExitReadLock();
+
             var buffer = new byte[1024 * 4];
             await webSocket.SendAsync(Encoding.UTF8.GetBytes("Hello client!"), WebSocketMessageType.Text, true, CancellationToken.None);
-            var usersCollection = await _appDB.GetAllUsers();
-            var enumerator = usersCollection.GetEnumerator();
+            WebSocketReceiveResult receiveResult;
 
 
-
-            var receiveResult = await webSocket.ReceiveAsync(
-                    new ArraySegment<byte>(buffer), CancellationToken.None);
-
-
-            while (!receiveResult.CloseStatus.HasValue)
+            while (true)
             {
-                var count = int.Parse(Encoding.UTF8.GetString(buffer));
-                for (var i = 0; i < count; i++)
-                {
-                    if (enumerator.MoveNext())
-                    {
-                        await webSocket.SendAsync(
-                        Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(enumerator.Current)),
-                        WebSocketMessageType.Text,
-                        true,
-                        CancellationToken.None);
-                    }
-                }
-
                 receiveResult = await webSocket.ReceiveAsync(
                     new ArraySegment<byte>(buffer), CancellationToken.None);
+
+                if (receiveResult.CloseStatus.HasValue)
+                {
+                    break;
+                }
+
+                var usersCollection = (await _appDB.GetAllUsers()).Select(user =>
+                {
+                    user.Status = this._lockedId.Contains(user.Id) ? LockedStatus.Locked : LockedStatus.Free;
+                    return user;
+                });
+                _locker.EnterReadLock();
+                // переделать на блоки
+                await webSocket.SendAsync(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(usersCollection)), WebSocketMessageType.Text, true, CancellationToken.None);
+                _locker.ExitReadLock();
             }
+
+            _locker.EnterReadLock();
+            _clients.Remove(webSocket);
+            _locker.ExitReadLock();
 
             await webSocket.CloseAsync(
                 receiveResult.CloseStatus.Value,
@@ -103,10 +106,10 @@ namespace ElectronicQueueServer.Controllers
         [HttpPut, Route("users")]
         public async Task<IActionResult> UpdateUser([FromBody] User user)
         {
-            await _onItemBlockedChange.Invoke(new BlockedItemData() { Id = user.Id, Status = BlockedStatus.Blocked });
+            await _onItemBlockedChange.Invoke(new BlockedItemData() { Id = user.Id, Status = LockedStatus.Locked });
             // code
             Thread.Sleep(1000);
-            await _onItemBlockedChange.Invoke(new BlockedItemData() { Id = user.Id, Status = BlockedStatus.Free });
+            await _onItemBlockedChange.Invoke(new BlockedItemData() { Id = user.Id, Status = LockedStatus.Free });
             await _onUserCollectionChange.Invoke(user);
 
             return Ok();
@@ -135,7 +138,7 @@ namespace ElectronicQueueServer.Controllers
         {
             switch (item.Status)
             {
-                case BlockedStatus.Blocked:
+                case LockedStatus.Locked:
                     _lockedId.Add(item.Id);
                     foreach (var webSocket in _clients)
                     {
@@ -143,7 +146,7 @@ namespace ElectronicQueueServer.Controllers
                             WebSocketMessageType.Text, true, CancellationToken.None);
                     }
                     break;
-                case BlockedStatus.Free:
+                case LockedStatus.Free:
                     _lockedId.Remove(item.Id);
                     foreach (var webSocket in _clients)
                     {
