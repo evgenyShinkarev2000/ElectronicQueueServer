@@ -1,3 +1,6 @@
+using ElectronicQueueServer.Controllers;
+using ElectronicQueueServer.Handlers;
+using ElectronicQueueServer.SocketsManager;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -5,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
+using System;
 
 namespace ElectronicQueueServer
 {
@@ -34,8 +38,8 @@ namespace ElectronicQueueServer
             }));
 
             services.AddTransient<Models.AppDB>();
-
-            services.AddSignalR();
+            services.AddWebSocketManeger(); // custom
+            //services.AddSingleton<WebSocketUserController, WebSocketUserController>(); не работает
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -45,7 +49,7 @@ namespace ElectronicQueueServer
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IServiceProvider serviceProvider)
         {
             if (env.IsDevelopment())
             {
@@ -54,11 +58,14 @@ namespace ElectronicQueueServer
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ElectronicQueueServer v1"));
             }
 
+            app.UseStaticFiles();
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
-
+           
             app.UseWebSockets();
+            app.MapSockets("/ws", serviceProvider.GetService<WebSocketUserHandler>());
 
             app.UseCors("AllowAnyOriginsPolicy");
 
