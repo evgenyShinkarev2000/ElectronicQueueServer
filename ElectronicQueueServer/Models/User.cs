@@ -23,8 +23,8 @@ namespace ElectronicQueueServer.Models
         public IEnumerable<object> AccessRights { get; set; }
         [JsonProperty("info")]
         public object Info { get; set; }
-        [BsonIgnore, JsonProperty("status")]
-        public string Status { get; set; }
+        [BsonIgnore, JsonProperty("lockStatus")]
+        public string LockStatus { get; set; }
     }
 
     public static class UserRole

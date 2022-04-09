@@ -39,7 +39,6 @@ namespace ElectronicQueueServer
 
             services.AddTransient<Models.AppDB>();
             services.AddWebSocketManeger(); // custom
-            //services.AddSingleton<WebSocketUserController, WebSocketUserController>(); не работает
 
             services.AddControllers();
             services.AddSwaggerGen(c =>
@@ -58,14 +57,11 @@ namespace ElectronicQueueServer
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "ElectronicQueueServer v1"));
             }
 
-            app.UseStaticFiles();
-
             app.UseHttpsRedirection();
 
             app.UseRouting();
-           
+
             app.UseWebSockets();
-            app.MapSockets("/ws", serviceProvider.GetService<WebSocketUserHandler>());
 
             app.UseCors("AllowAnyOriginsPolicy");
 

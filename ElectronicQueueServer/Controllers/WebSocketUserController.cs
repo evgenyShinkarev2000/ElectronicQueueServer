@@ -1,4 +1,5 @@
-﻿using ElectronicQueueServer.Models;
+﻿using ElectronicQueueServer.Handlers;
+using ElectronicQueueServer.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -18,33 +19,30 @@ namespace ElectronicQueueServer.Controllers
     [Route("ws/[controller]")]
     public class WebSocketUserController : Controller
     {
-        private readonly List<WebSocket> _logUser = new List<WebSocket>();
-        private readonly HashSet<WebSocket> _clients = new HashSet<WebSocket>();
-        private readonly Dictionary<WebSocket, HashSet<ObjectId>> _clientLocksDict = new Dictionary<WebSocket, HashSet<ObjectId>>();
-        private readonly HashSet<ObjectId> _lockedIds = new HashSet<ObjectId>();
-        private readonly AppDB _appDB;
-        private event Func<User, WebSocket, Task> _onUserCollectionChange;
-        private event Func<LockedItem, WebSocket, Task> _onItemLockedChange;
-        public WebSocketUserController(AppDB appDB)
-        {
-            this._appDB = appDB;
-            _onItemLockedChange += this.UpdateLockedItems;
-            _onUserCollectionChange += this.UpdateUserCollection;
-        }
+        private readonly WebSocketUserHandler _socketHandler;
+        private WebSocket _webSocket;
 
-        public IActionResult Index()
+        public WebSocketUserController(WebSocketUserHandler handler)
         {
-            return View();
+            _socketHandler = handler;
         }
-
 
         [HttpGet]
         public async Task CreateWebSocket()
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
-                var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                await UserController(webSocket);
+                try
+                {
+                    _webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+                    await _socketHandler.OnConnection(_webSocket);
+                    await UserController();
+                }
+                catch (Exception ex)
+                {
+                    var a = "a";
+                }
+
             }
             else
             {
@@ -52,115 +50,38 @@ namespace ElectronicQueueServer.Controllers
             }
         }
 
-        private async Task UserController(WebSocket webSocket)
+        private async Task UserController()
         {
-            _clients.Add(webSocket);
-            _clientLocksDict.Add(webSocket, new HashSet<ObjectId>());
-            _logUser.Add(webSocket);
-
             var buffer = new byte[1024 * 4];
-            //await webSocket.SendAsync(Encoding.UTF8.GetBytes("Hello client!"), WebSocketMessageType.Text, true, CancellationToken.None);
-            var receiveResult = await webSocket.ReceiveAsync(
+            var receiveResult = await _webSocket.ReceiveAsync(
                     new ArraySegment<byte>(buffer), CancellationToken.None);
-
 
             while (!receiveResult.CloseStatus.HasValue)
             {
-                var receiveString = Encoding.UTF8.GetString(buffer);
-                var instruction = JsonConvert.DeserializeObject<WSMessageToServer>(receiveString).ServerInstructions;
-                var response = await MakeResponse(instruction, receiveString, webSocket);
-                if (response != null)
-                {
-                    await webSocket.SendAsync(
-                        Encoding.UTF8.GetBytes(response),
-                        WebSocketMessageType.Text,
-                        true,
-                        CancellationToken.None);
-                }
-                var waiter = webSocket.ReceiveAsync(
-                    new ArraySegment<byte>(buffer), CancellationToken.None);
+                var receiveString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+                var messageToServer = JsonConvert.DeserializeObject<WSMessageToServer>(receiveString);
+                var instructions = messageToServer.ServerInstructions;
+                var data = messageToServer.ServerData;
 
-                receiveResult = await waiter;
+                await RunHandler(instructions, data);
+                
+                receiveResult = _webSocket.ReceiveAsync(buffer, CancellationToken.None).Result;
             }
 
-            _clients.Remove(webSocket);
-            _clientLocksDict[webSocket].Select(lockedId => _lockedIds.Remove(lockedId));
-            _clientLocksDict.Remove(webSocket);
-
-            await webSocket.CloseAsync(
-                receiveResult.CloseStatus.Value,
-                receiveResult.CloseStatusDescription,
-                CancellationToken.None);
+            await _socketHandler.OnDisconnected(_webSocket);
         }
 
-        private async Task<string> MakeResponse(IEnumerable<string> instruction, string receiveString, WebSocket webSocket)
+        private async Task RunHandler(IEnumerable<string> instructions, Dictionary<string, object> data)
         {
-            object response = null;
-            switch (instruction.First())
+            var handlers = new Dictionary<string, Func<Task>>()
             {
-                case WSMessageToServer.Instructions.GetAllUsers:
-                    response = await GetUsers();
-                    break;
-                case WSMessageToServer.Instructions.GetEditRight:
-                    var data = JsonConvert.DeserializeObject<WSMessageToServer>(receiveString).ServerData;
-                    response = TryGetEditRight(new LockedItem(data), webSocket);
-                    break;
-                case WSMessageToServer.Instructions.DeleteEditRight:
-                    var t = JsonConvert.DeserializeObject<WSMessageToServer>(receiveString).ServerData;
-                    DeleteEditRight(new LockedItem(t).ItemId, webSocket);
-                    
-                    break;
+                {WSMessageToServer.Instructions.GetAllUsers, () => _socketHandler.GetUsers(_webSocket) },
+                {WSMessageToServer.Instructions.GetEditRight, () => _socketHandler.GetEditRight(_webSocket, new LockedItem(data)) },
+                {WSMessageToServer.Instructions.DeleteEditRight, () => _socketHandler.DeleteEditRight(_webSocket, new LockedItem(data))}
+            };
 
-            }
-
-            return response == null ? null : JsonConvert.SerializeObject(response);
-            
-        }
-
-        private void DeleteEditRight(ObjectId objectId, WebSocket webSocket)
-        {
-            this._lockedIds.Remove(objectId);
-            this._clientLocksDict[webSocket].Remove(objectId);
-            this._onItemLockedChange(new LockedItem() { ItemId = objectId, Status = LockedItem.LockedStatus.Free }, webSocket);
-        }
-
-        private WSMessageToClient TryGetEditRight(LockedItem item, WebSocket webSocket)
-        {
-            if (this._lockedIds.Contains(item.ItemId))
-            {
-                return new WSMessageToClient(WSMessageToClient.Instractions.EditRightResponse, false);
-            }
-            
-            this._lockedIds.Add(item.ItemId);
-            this._clientLocksDict[webSocket].Add(item.ItemId);
-            this._onItemLockedChange(item, webSocket);
-
-            return new WSMessageToClient(WSMessageToClient.Instractions.EditRightResponse, true);
-        }
-
-
-        private async Task<WSMessageToClient> GetUsers()
-        {
-            var usersCollection = (await _appDB.GetAllUsers()).Select(user =>
-            {
-                user.Status = this._lockedIds.Contains(user.Id) ? LockedItem.LockedStatus.Lock : LockedItem.LockedStatus.Free;
-                return user;
-            });
-
-
-            return new WSMessageToClient(WSMessageToClient.Instractions.AllUsersResponse, usersCollection);
-        }
-
-
-
-        private async Task UpdateUserCollection(User user, WebSocket webSocket)
-        {
-
-        }
-
-        private async Task UpdateLockedItems(LockedItem item, WebSocket webSocket)
-        {
-            
+            var instruction = instructions.First();
+            await handlers[instruction]();
         }
     }
 }

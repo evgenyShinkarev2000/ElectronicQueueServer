@@ -38,6 +38,7 @@ namespace ElectronicQueueServer.Models
         {
             public const string EditRightResponse = "editRightResponse";
             public const string AllUsersResponse = "allUsersResponse";
+            public const string UpdateLock = "updateLock";
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
@@ -31,8 +32,8 @@ namespace ElectronicQueueServer.SocketsManager
                 return;
             }
 
-            await webSocket.SendAsync(new System.ArraySegment<byte>(
-                Encoding.UTF8.GetBytes(message), 0, message.Length),
+            await webSocket.SendAsync(
+                Encoding.UTF8.GetBytes(message),
                 WebSocketMessageType.Text,
                 true,
                 CancellationToken.None);
@@ -72,7 +73,5 @@ namespace ElectronicQueueServer.SocketsManager
                 await this.SendMessage(connection.Value, message);
             }
         }
-
-        public abstract Task Receive(WebSocket webSocket, WebSocketReceiveResult result, byte[] buffer);
     }
 }
