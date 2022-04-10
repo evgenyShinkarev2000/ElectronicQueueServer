@@ -46,7 +46,7 @@ namespace ElectronicQueueServer.Handlers
             var unionSet = new HashSet<string>();
             foreach (var set in this._userPairLocked.Values)
             {
-                unionSet.Union(set);
+                unionSet.UnionWith(set);
             }
             var users = await this._appDB.GetAllUsers();
             var usersLock = users.Select(user =>
@@ -81,12 +81,14 @@ namespace ElectronicQueueServer.Handlers
             var canUserEdit = !isLocked;
             var message = new WSMessageToClient(WSMessageToClient.Instractions.EditRightResponse, canUserEdit);
             await this.SendMessage(webSocket, JsonConvert.SerializeObject(message));
-
-            await this.UpdateLock(webSocket, new LockedItem()
+            if (!isLocked)
             {
-                ItemId = itemToLock.ItemId,
-                Status = LockedItem.LockedStatus.Lock
-            });
+                await this.UpdateLock(webSocket, new LockedItem()
+                {
+                    ItemId = itemToLock.ItemId,
+                    Status = LockedItem.LockedStatus.Lock
+                });
+            }
         }
 
         public async Task DeleteEditRight(WebSocket webSocket, LockedItem itemToUnlock)
