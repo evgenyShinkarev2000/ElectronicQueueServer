@@ -39,6 +39,9 @@ namespace ElectronicQueueServer.Models
             public const string EditRightResponse = "editRightResponse";
             public const string AllUsersResponse = "allUsersResponse";
             public const string UpdateLock = "updateLock";
+            public const string UpdateUser = "updateUser";
+            public const string DeleteUser = "deleteUser";
+            public const string AddUser = "addUser";
         }
     }
 }

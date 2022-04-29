@@ -38,6 +38,9 @@ namespace ElectronicQueueServer.Models
             public const string GetAllUsers = "getAllUsers";
             public const string GetEditRight = "getEditRight";
             public const string DeleteEditRight = "deleteEditRight";
+            public const string UdpateUser = "updateUser";
+            public const string DeleteUser = "deleteUser";
+            public const string AddUser = "addUser";
         }
     }
 }

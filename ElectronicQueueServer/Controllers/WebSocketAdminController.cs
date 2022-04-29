@@ -17,30 +17,51 @@ using System.Threading.Tasks;
 namespace ElectronicQueueServer.Controllers
 {
     [Route("ws/[controller]")]
-    public class WebSocketUserController : Controller
+    public class WebSocketAdminController : Controller
     {
-        private readonly WebSocketUserHandler _socketHandler;
+        private readonly WSUserHandler _socketHandler;
         private WebSocket _webSocket;
 
-        public WebSocketUserController(WebSocketUserHandler handler)
+        public WebSocketAdminController(WSUserHandler handler)
         {
             _socketHandler = handler;
         }
 
+        [Authorize(Roles = "Admin")]
+        [Route("Ticket")]
+        public ActionResult<string> GetTicket()
+        {
+            try
+            {
+                return _socketHandler.TicketMenager.GenerateTicket();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         [HttpGet]
-        public async Task CreateWebSocket()
+        public async Task CreateWebSocket(string webSocketTicket)
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
                 try
                 {
-                    _webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                    await _socketHandler.OnConnection(_webSocket);
-                    await UserController();
+                    if (!_socketHandler.TicketMenager.isTicketValid(webSocketTicket))
+                    {
+                        await Response.WriteAsync(Unauthorized().ToString());
+                    }
+                    else
+                    {
+                        _webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+                        await _socketHandler.OnConnection(_webSocket);
+                        await UserController();
+                    }
                 }
                 catch (Exception ex)
                 {
-                    var a = "a";
+                    await this._socketHandler.OnDisconnected(_webSocket);
                 }
 
             }
@@ -64,7 +85,7 @@ namespace ElectronicQueueServer.Controllers
                 var data = messageToServer.ServerData;
 
                 await RunHandler(instructions, data);
-                
+
                 receiveResult = _webSocket.ReceiveAsync(buffer, CancellationToken.None).Result;
             }
 
@@ -77,7 +98,10 @@ namespace ElectronicQueueServer.Controllers
             {
                 {WSMessageToServer.Instructions.GetAllUsers, () => _socketHandler.GetUsers(_webSocket) },
                 {WSMessageToServer.Instructions.GetEditRight, () => _socketHandler.GetEditRight(_webSocket, new LockedItem(data)) },
-                {WSMessageToServer.Instructions.DeleteEditRight, () => _socketHandler.DeleteEditRight(_webSocket, new LockedItem(data))}
+                {WSMessageToServer.Instructions.DeleteEditRight, () => _socketHandler.DeleteEditRight(_webSocket, new LockedItem(data))},
+                {WSMessageToServer.Instructions.AddUser, () => _socketHandler.AddUser(data.ToObject<User>()) },
+                {WSMessageToServer.Instructions.UdpateUser, () => _socketHandler.UpdateUser(data.ToObject<User>()) },
+                {WSMessageToServer.Instructions.DeleteUser, () => _socketHandler.DeleteUser(data.ToObject<User>()) }
             };
 
             var instruction = instructions.First();

@@ -11,11 +11,12 @@ using System.Threading.Tasks;
 
 namespace ElectronicQueueServer.Handlers
 {
-    public class WebSocketUserHandler : SocketHandler
+    public class WSUserHandler : SocketHandler
     {
         private readonly AppDB _appDB;
         private readonly ConcurrentDictionary<string, HashSet<string>> _userPairLocked = new ConcurrentDictionary<string, HashSet<string>>();
-        public WebSocketUserHandler(ConnectionManager connectionManager, AppDB appDB) : base(connectionManager)
+        public WSUserHandler(ConnectionManager connectionManager, TicketMenager ticketMenager, AppDB appDB) 
+            : base(connectionManager, ticketMenager)
         {
             _appDB = appDB;
         }
@@ -57,6 +58,24 @@ namespace ElectronicQueueServer.Handlers
             var message = new WSMessageToClient(WSMessageToClient.Instractions.AllUsersResponse, usersLock);
             var messageString = JsonConvert.SerializeObject(message);
             await this.SendMessage(webSocket, messageString);
+        }
+
+        public async Task AddUser(User user)
+        {
+            await this._appDB.AddUser(user);
+            await base.SendMessageToAll(new WSMessageToClient(WSMessageToClient.Instractions.AddUser, user));
+        }
+
+        public async Task UpdateUser(User user)
+        {
+            await this._appDB.ReplaceUser(user);
+            await SendMessageToAll(new WSMessageToClient(WSMessageToClient.Instractions.UpdateLock, user));
+        }
+
+        public async Task DeleteUser(User user)
+        {
+            await this._appDB.DeleteUser(user);
+            await base.SendMessageToAll(new WSMessageToClient(WSMessageToClient.Instractions.DeleteUser, user));
         }
 
         public async Task GetEditRight(WebSocket webSocket, LockedItem itemToLock)

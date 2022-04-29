@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ElectronicQueueServer.Models;
+using Newtonsoft.Json;
+using System;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
@@ -10,9 +12,11 @@ namespace ElectronicQueueServer.SocketsManager
     public abstract class SocketHandler
     {
         public ConnectionManager ConnectionsManager { get; set; }
-        public SocketHandler(ConnectionManager connectionsManager)
+        public TicketMenager TicketMenager { get; set; }
+        public SocketHandler(ConnectionManager connectionsManager, TicketMenager ticketMenager)
         {
             ConnectionsManager = connectionsManager;
+            TicketMenager = ticketMenager;
         }
 
         public virtual async Task OnConnection(WebSocket socket)
@@ -57,6 +61,12 @@ namespace ElectronicQueueServer.SocketsManager
                 await this.SendMessage(connection.Value, message);
             }
             
+        }
+
+        public async Task SendMessageToAll(WSMessageToClient objMessage)
+        {
+            var message = JsonConvert.SerializeObject(objMessage);
+            await this.SendMessageToAll(message);
         }
 
         public async Task SendMessageToAllExcept(WebSocket webSocket, string message)

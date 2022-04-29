@@ -8,7 +8,8 @@ namespace ElectronicQueueServer.SocketsManager
         public static IServiceCollection AddWebSocketManeger(this IServiceCollection services)
         {
             services.AddTransient<ConnectionManager>();
-            services.AddSingleton<WebSocketUserHandler>(); // переписать
+            services.AddTransient<TicketMenager>();
+            services.AddSingleton<WSUserHandler>(); 
 
             return services;
         }

@@ -41,5 +41,15 @@ namespace ElectronicQueueServer.Models
         {
             await Users.InsertOneAsync(user);
         }
+
+        public async Task ReplaceUser(User user)
+        {
+            await Users.ReplaceOneAsync(u => u.Id == user.Id, user);
+        }
+
+        public async Task DeleteUser(User user)
+        {
+            await Users.DeleteOneAsync(u => u.Id == user.Id);
+        }
     }
 }
