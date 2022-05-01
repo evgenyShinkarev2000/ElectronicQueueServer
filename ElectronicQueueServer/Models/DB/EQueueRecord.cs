@@ -14,7 +14,7 @@ namespace ElectronicQueueServer.Models.DB
         [JsonProperty("receiptTimeBegin")]
         public TimeOnly ReceiptTimeBegin { get; set; }
         [JsonProperty("receiptTimeEnd")]
-        public DateTime ReceiptTimeEnd { get; set; }
+        public TimeOnly ReceiptTimeEnd { get; set; }
 
         [JsonProperty("recordType")]
         public string RecordType { get; set; }

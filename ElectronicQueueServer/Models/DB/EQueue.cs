@@ -12,7 +12,7 @@ namespace ElectronicQueueServer.Models
         public ObjectId Id { get; set; }
         [JsonProperty("creatorId")]
         public ObjectId CreatorId { get; set; }
-        [JsonProperty("records")]
-        public IEnumerable<EQueueRecord> Records { get; set; }
+        [JsonProperty("days")]
+        public IEnumerable<EQueueRecord> Days { get; set; }
     }
 }
