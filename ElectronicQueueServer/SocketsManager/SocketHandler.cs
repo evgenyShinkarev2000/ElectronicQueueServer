@@ -12,11 +12,9 @@ namespace ElectronicQueueServer.SocketsManager
     public abstract class SocketHandler
     {
         public ConnectionManager ConnectionsManager { get; set; }
-        public TicketMenager TicketMenager { get; set; }
-        public SocketHandler(ConnectionManager connectionsManager, TicketMenager ticketMenager)
+        public SocketHandler(ConnectionManager connectionsManager)
         {
             ConnectionsManager = connectionsManager;
-            TicketMenager = ticketMenager;
         }
 
         public virtual async Task OnConnection(WebSocket socket)

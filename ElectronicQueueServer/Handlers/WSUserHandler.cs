@@ -15,7 +15,7 @@ namespace ElectronicQueueServer.Handlers
     {
         private readonly AppDB _appDB;
         private readonly ConcurrentDictionary<string, HashSet<string>> _userPairLocked = new ConcurrentDictionary<string, HashSet<string>>();
-        public WSUserHandler(ConnectionManager connectionManager, TicketMenager ticketMenager, AppDB appDB) 
+        public WSUserHandler(ConnectionManager connectionManager, TicketMenager ticketMenager, AppDB appDB)
             : base(connectionManager, ticketMenager)
         {
             _appDB = appDB;
@@ -24,16 +24,16 @@ namespace ElectronicQueueServer.Handlers
         public override async Task OnConnection(WebSocket socket)
         {
             await base.OnConnection(socket);
-            _userPairLocked.TryAdd(this.ConnectionsManager.GetId(socket), new HashSet<string>());
+            _userPairLocked.TryAdd(ConnectionsManager.GetId(socket), new HashSet<string>());
         }
 
         public override async Task OnDisconnected(WebSocket webSocket)
         {
-            var id = this.ConnectionsManager.GetId(webSocket);
+            var id = ConnectionsManager.GetId(webSocket);
             _userPairLocked.TryRemove(id, out var lockedIdSet);
             foreach (var lockedId in lockedIdSet)
             {
-                await this.UpdateLock(webSocket, new LockedItem()
+                await UpdateLock(webSocket, new LockedItem()
                 {
                     ItemId = MongoDB.Bson.ObjectId.Parse(lockedId),
                     Status = LockedItem.LockedStatus.Free
@@ -45,11 +45,11 @@ namespace ElectronicQueueServer.Handlers
         public async Task GetUsers(WebSocket webSocket)
         {
             var unionSet = new HashSet<string>();
-            foreach (var set in this._userPairLocked.Values)
+            foreach (var set in _userPairLocked.Values)
             {
                 unionSet.UnionWith(set);
             }
-            var users = await this._appDB.GetAllUsers();
+            var users = await _appDB.GetAllUsers();
             var usersLock = users.Select(user =>
             {
                 user.LockStatus = unionSet.Contains(user.Id.ToString()) ? LockedItem.LockedStatus.Lock : LockedItem.LockedStatus.Free;
@@ -57,32 +57,32 @@ namespace ElectronicQueueServer.Handlers
             });
             var message = new WSMessageToClient(WSMessageToClient.Instractions.AllUsersResponse, usersLock);
             var messageString = JsonConvert.SerializeObject(message);
-            await this.SendMessage(webSocket, messageString);
+            await SendMessage(webSocket, messageString);
         }
 
         public async Task AddUser(User user)
         {
-            await this._appDB.AddUser(user);
-            await base.SendMessageToAll(new WSMessageToClient(WSMessageToClient.Instractions.AddUser, user));
+            await _appDB.AddUser(user);
+            await SendMessageToAll(new WSMessageToClient(WSMessageToClient.Instractions.AddUser, user));
         }
 
         public async Task UpdateUser(User user)
         {
-            await this._appDB.ReplaceUser(user);
+            await _appDB.ReplaceUser(user);
             await SendMessageToAll(new WSMessageToClient(WSMessageToClient.Instractions.UpdateLock, user));
         }
 
         public async Task DeleteUser(User user)
         {
-            await this._appDB.DeleteUser(user);
-            await base.SendMessageToAll(new WSMessageToClient(WSMessageToClient.Instractions.DeleteUser, user));
+            await _appDB.DeleteUser(user);
+            await SendMessageToAll(new WSMessageToClient(WSMessageToClient.Instractions.DeleteUser, user));
         }
 
         public async Task GetEditRight(WebSocket webSocket, LockedItem itemToLock)
         {
             var isLocked = false;
 
-            foreach (var pair in this._userPairLocked)
+            foreach (var pair in _userPairLocked)
             {
                 if (pair.Value.Contains(itemToLock.ItemId.ToString()))
                 {
@@ -93,16 +93,16 @@ namespace ElectronicQueueServer.Handlers
 
             if (!isLocked)
             {
-                this._userPairLocked.TryGetValue(this.ConnectionsManager.GetId(webSocket), out var lockedIdSet);
+                _userPairLocked.TryGetValue(ConnectionsManager.GetId(webSocket), out var lockedIdSet);
                 lockedIdSet.Add(itemToLock.ItemId.ToString());
             }
 
             var canUserEdit = !isLocked;
             var message = new WSMessageToClient(WSMessageToClient.Instractions.EditRightResponse, canUserEdit);
-            await this.SendMessage(webSocket, JsonConvert.SerializeObject(message));
+            await SendMessage(webSocket, JsonConvert.SerializeObject(message));
             if (!isLocked)
             {
-                await this.UpdateLock(webSocket, new LockedItem()
+                await UpdateLock(webSocket, new LockedItem()
                 {
                     ItemId = itemToLock.ItemId,
                     Status = LockedItem.LockedStatus.Lock
@@ -112,12 +112,12 @@ namespace ElectronicQueueServer.Handlers
 
         public async Task DeleteEditRight(WebSocket webSocket, LockedItem itemToUnlock)
         {
-            var id = this.ConnectionsManager.GetId(webSocket);
+            var id = ConnectionsManager.GetId(webSocket);
 
-            this._userPairLocked.TryGetValue(id, out var lockedIdSet);
+            _userPairLocked.TryGetValue(id, out var lockedIdSet);
             lockedIdSet.Remove(itemToUnlock.ItemId.ToString());
 
-            await this.UpdateLock(webSocket, new LockedItem()
+            await UpdateLock(webSocket, new LockedItem()
             {
                 ItemId = itemToUnlock.ItemId,
                 Status = LockedItem.LockedStatus.Free
@@ -127,7 +127,7 @@ namespace ElectronicQueueServer.Handlers
         private async Task UpdateLock(WebSocket webSocket, LockedItem lockedItem)
         {
             var message = new WSMessageToClient(WSMessageToClient.Instractions.UpdateLock, lockedItem);
-            await this.SendMessageToAllExcept(webSocket, JsonConvert.SerializeObject(message));
+            await SendMessageToAllExcept(webSocket, JsonConvert.SerializeObject(message));
         }
     }
 }

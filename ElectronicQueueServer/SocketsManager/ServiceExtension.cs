@@ -1,4 +1,5 @@
 ﻿using ElectronicQueueServer.Handlers;
+using ElectronicQueueServer.Handlers.Factory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ElectronicQueueServer.SocketsManager
@@ -9,7 +10,9 @@ namespace ElectronicQueueServer.SocketsManager
         {
             services.AddTransient<ConnectionManager>();
             services.AddTransient<TicketMenager>();
-            services.AddSingleton<WSUserHandler>(); 
+            services.AddTransient<SocketHandler>();
+            services.AddTransient<IWSControllerFactory, ProtectedControllerFactory>();
+            services.AddSingleton<UserControllerContainer>(); 
 
             return services;
         }

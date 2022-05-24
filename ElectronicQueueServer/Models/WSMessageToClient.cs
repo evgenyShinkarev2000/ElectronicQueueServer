@@ -34,6 +34,12 @@ namespace ElectronicQueueServer.Models
             this.ClientData = data;
         }
 
+        public WSMessageToClient(string[] instructions, object data)
+        {
+            this.ClientInstructions = new List<string>(instructions);
+            this.ClientData = data;
+        }
+
         public static class Instractions
         {
             public const string EditRightResponse = "editRightResponse";
