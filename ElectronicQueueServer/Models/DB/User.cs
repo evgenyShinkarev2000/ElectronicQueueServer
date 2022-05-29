@@ -10,6 +10,7 @@ namespace ElectronicQueueServer.Models
     {
         [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
         [BsonRepresentation(BsonType.ObjectId)]
+        [BsonIgnoreIfDefault]
         [JsonProperty("id")]
         public string Id { get; set; }
         [JsonProperty("firstName")]

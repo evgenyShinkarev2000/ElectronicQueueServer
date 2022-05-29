@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using ElectronicQueueServer.Models.DB;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
@@ -12,6 +13,7 @@ namespace ElectronicQueueServer.Models
         private readonly MongoClient mongoClient;
         public readonly IMongoDatabase ElectonicQueueDB;
         public readonly IMongoCollection<User> Users;
+        public readonly IMongoCollection<EQDayPattern> DayPatterns;
         public AppDB()
         {
             var localConnectionString = "mongodb://localhost:27017";
@@ -19,6 +21,7 @@ namespace ElectronicQueueServer.Models
             mongoClient = new MongoClient(setting);
             ElectonicQueueDB = mongoClient.GetDatabase("ElectronicQueue");
             Users = ElectonicQueueDB.GetCollection<User>("Users");
+            DayPatterns = ElectonicQueueDB.GetCollection<EQDayPattern>("DayPatterns");
         }
 
         public async Task<User> GetUserByLoginModel(LoginModel loginModel)
@@ -50,6 +53,26 @@ namespace ElectronicQueueServer.Models
         public async Task DeleteUser(User user)
         {
             await Users.DeleteOneAsync(u => u.Id == user.Id);
+        }
+
+        public async Task<IEnumerable<EQDayPattern>> GetAllDayPatterns()
+        {
+            return (await this.DayPatterns.FindAsync(_ => true)).ToEnumerable();
+        }
+
+        public async Task AddDayPattern(EQDayPattern dayPattern)
+        {
+            await this.DayPatterns.InsertOneAsync(dayPattern);
+        }
+
+        public async Task DeleteDayPattern(string name)
+        {
+            await this.DayPatterns.DeleteOneAsync(dayPattern => dayPattern.Name == name);
+        }
+
+        public async Task UpdateDayPattern(EQDayPattern dayPattern)
+        {
+            await this.DayPatterns.ReplaceOneAsync(oldPattern => oldPattern.Name == dayPattern.Name, dayPattern);
         }
     }
 }

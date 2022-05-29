@@ -2,20 +2,28 @@
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.IdGenerators;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Generic;
 
 namespace ElectronicQueueServer.Models.DB
 {
-    public class EQueueDay
+    public class EQDayPattern
     {
         [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
         [BsonRepresentation(BsonType.ObjectId)]
+        [BsonIgnoreIfDefault]
         [JsonProperty("id")]
         public string Id { get; set; }
-        [JsonProperty("date")]
-        public string Date { get; set; }
+
+        [JsonProperty("creatorId")]
+        public string CreatorId { get; set; }
+
+        [JsonProperty("name")]
+        public string Name { get; set; }
+
         [JsonProperty("records")]
-        public IEnumerable<EQueueRecord> Records { get; set; }
+        public IEnumerable<EQRecordPattern> Records { get; set; }
+
+        [JsonProperty("info")]
+        public object Info { get; set; }
     }
 }

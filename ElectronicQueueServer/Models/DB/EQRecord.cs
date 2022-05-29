@@ -6,28 +6,30 @@ using System;
 
 namespace ElectronicQueueServer.Models.DB
 {
-    public class EQueueRecord
+    public class EQRecord
     {
         [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
         [BsonRepresentation(BsonType.ObjectId)]
+        [BsonIgnoreIfDefault]
         [JsonProperty("id")]
         public string Id { get; set; }
 
-        [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
-        [BsonRepresentation(BsonType.ObjectId)]
         [JsonProperty("registeredId")]
         public string RegisteredId { get; set; }
-        [JsonProperty("receiptTimeBegin")]
 
-        public string ReceiptTimeBegin { get; set; }
-        [JsonProperty("receiptTimeEnd")]
-        public string ReceiptTimeEnd { get; set; }
+        [JsonProperty("beginTime")]
 
-        [JsonProperty("recordType")]
-        public string RecordType { get; set; }
+        public string BeginTime { get; set; }
+
+        [JsonProperty("endTime")]
+        public string EndTime { get; set; }
+
+        [JsonProperty("type")]
+        public string Type { get; set; }
 
         [JsonProperty("info")]
         public object Info { get; set; }
+
 
         public static class RecordTypeName
         {
