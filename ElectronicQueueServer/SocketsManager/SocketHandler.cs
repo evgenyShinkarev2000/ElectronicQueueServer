@@ -11,7 +11,8 @@ namespace ElectronicQueueServer.SocketsManager
 {
     public abstract class SocketHandler
     {
-        public ConnectionManager ConnectionsManager { get; set; }
+        public ConnectionManager ConnectionsManager { get; }
+
         public SocketHandler(ConnectionManager connectionsManager)
         {
             ConnectionsManager = connectionsManager;
@@ -52,6 +53,12 @@ namespace ElectronicQueueServer.SocketsManager
             await this.SendMessage(webSocket, message);
         }
 
+        public async Task SendMessage(WebSocket webSocket, WSMessageToClient message)
+        {
+            var messageString = JsonConvert.SerializeObject(message);
+            await this.SendMessage(webSocket, messageString);
+        }
+
         public async Task SendMessageToAll(string message)
         {
             foreach(var connection in this.ConnectionsManager.GetAllConnections())
@@ -80,6 +87,10 @@ namespace ElectronicQueueServer.SocketsManager
             {
                 await this.SendMessage(connection.Value, message);
             }
+        }
+        public async Task SendMessageToAllExcept(WebSocket webSocket, WSMessageToClient data)
+        {
+            await this.SendMessageToAllExcept(webSocket, JsonConvert.SerializeObject(data));
         }
     }
 }

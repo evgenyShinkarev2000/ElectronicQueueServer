@@ -1,4 +1,6 @@
 ﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.IdGenerators;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -10,51 +12,26 @@ namespace ElectronicQueueServer.Models
     // отправляется на фронт, чтобы изменить стили объекта
     public class LockedItem
     {
-        public LockedItem()
-        {
-        }
-
-        public LockedItem(Dictionary<string, object> tokens)
-        {
-            foreach (var token in tokens)
-            {
-                var lower = token.Key.ToLower();
-
-                if (token.Value == null && lower != "itemid")
-                {
-                    continue;
-                }
-                if (token.Value.GetType() != typeof(string))
-                {
-                    throw new ArgumentException($"по ключу {token.Key} не строка");
-                }
-
-                var value = (string)token.Value;
-
-                
-                switch (lower)
-                {
-                    case "itemid":
-                        this.ItemId = ObjectId.Parse(value);
-                        break;
-                    case "userid":
-                        this.UserId = ObjectId.Parse(value);
-                        break;
-                    case "status":
-                        this.Status = value;
-                        break;
-                    default:
-                        throw new ArgumentException("неизсвестный ключ " + token.Key);
-                }
-            }
-        }
-
+        [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
+        [BsonRepresentation(BsonType.ObjectId)]
         [JsonProperty("itemId")]
-        public ObjectId ItemId { get; set; }
+        public string ItemId { get; set; }
+
+        [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
+        [BsonRepresentation(BsonType.ObjectId)]
         [JsonProperty("userId")]
-        public ObjectId UserId { get; set; }
+        public string UserId { get; set; }
+
         [JsonProperty("status")]
         public string Status { get; set; }
+
+        public LockedItem() { }
+
+        public LockedItem(string itemId, string status)
+        {
+            this.ItemId = ItemId;
+            this.Status = status;
+        }
 
         public LockedItem GetCopyOtherStatus(string status)
         {

@@ -1,11 +1,12 @@
 ﻿using ElectronicQueueServer.Handlers;
-using ElectronicQueueServer.Handlers.Factory;
+using ElectronicQueueServer.Handlers.WSUser;
 using ElectronicQueueServer.Models;
 using ElectronicQueueServer.SocketsManager;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -21,7 +22,7 @@ namespace ElectronicQueueServer.Controllers
     [Route("ws/WebSocketAdmin")]
     public class UserController : Controller
     {
-        private readonly SocketHandler handler;
+        private readonly WSUserHandler handler;
         private readonly IWSControllerFactory controllerFactory;
         private readonly TicketMenager _ticketMenager;
         private WebSocket _webSocket;
@@ -33,6 +34,7 @@ namespace ElectronicQueueServer.Controllers
             this.handler = container.SocketHandler;
             this.controllerFactory.SocketHandler = handler;
             this.controllerFactory.AppDB = appDB;
+            this.controllerFactory.LockManeger = container.LockManeger;
         }
 
         [Authorize(Roles = "ADMIN")]
@@ -102,7 +104,7 @@ namespace ElectronicQueueServer.Controllers
             await handler.OnDisconnected(_webSocket);
         }
 
-        private async Task RunProtectedHandler(IEnumerable<string> instructions, Dictionary<string, object> data)
+        private async Task RunProtectedHandler(IEnumerable<string> instructions, object data)
         {
             var mainController = new ElectronicQueueServer.Handlers.WSUser.Main(this.controllerFactory);
             try

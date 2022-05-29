@@ -1,6 +1,7 @@
 ﻿using ElectronicQueueServer.Handlers;
-using ElectronicQueueServer.Handlers.Factory;
+using ElectronicQueueServer.Handlers.WSUser;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.WebSockets;
 
 namespace ElectronicQueueServer.SocketsManager
 {
@@ -10,7 +11,7 @@ namespace ElectronicQueueServer.SocketsManager
         {
             services.AddTransient<ConnectionManager>();
             services.AddTransient<TicketMenager>();
-            services.AddTransient<SocketHandler>();
+            services.AddTransient<ILockManeger<WebSocket, string>, LockManeger<WebSocket, string>>();
             services.AddTransient<IWSControllerFactory, ProtectedControllerFactory>();
             services.AddSingleton<UserControllerContainer>(); 
 

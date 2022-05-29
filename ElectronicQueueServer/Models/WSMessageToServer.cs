@@ -8,7 +8,7 @@ namespace ElectronicQueueServer.Models
         [JsonProperty("serverInstructions")]
         public IEnumerable<string> ServerInstructions { get; set; }
         [JsonProperty("serverData")]
-        public Dictionary<string, object> ServerData { get; set; }
+        public object ServerData { get; set; }
 
         public WSMessageToServer() { }
         public WSMessageToServer(string instruction)
@@ -21,13 +21,13 @@ namespace ElectronicQueueServer.Models
             this.ServerInstructions = instruction;
         }
 
-        public WSMessageToServer(string instruction, Dictionary<string, object> data)
+        public WSMessageToServer(string instruction, object data)
         {
             this.ServerInstructions = new List<string>() { instruction };
             this.ServerData = data;
         }
 
-        public WSMessageToServer(List<string> instructions, Dictionary<string, object> data)
+        public WSMessageToServer(List<string> instructions, object data)
         {
             this.ServerInstructions = instructions;
             this.ServerData = data;

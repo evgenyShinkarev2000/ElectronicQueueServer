@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.IdGenerators;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -7,8 +8,10 @@ namespace ElectronicQueueServer.Models
 {
     public class User
     {
+        [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
+        [BsonRepresentation(BsonType.ObjectId)]
         [JsonProperty("id")]
-        public ObjectId Id { get; set; }
+        public string Id { get; set; }
         [JsonProperty("firstName")]
         public string FirstName { get; set; }
         [JsonProperty("secondName")]

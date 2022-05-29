@@ -27,7 +27,7 @@ namespace ElectronicQueueServer.Handlers.WSUser
             var handlers = new Dictionary<string, Func<IWSController>>()
             {
                 {"user", () => this._controllerFactory.CreateInstacne<User>()},
-                {"allUser", () => this._controllerFactory.CreateInstacne<AllUser>() },
+                {"allUsers", () => this._controllerFactory.CreateInstacne<AllUsers>() },
                 {"editRight", () => this._controllerFactory.CreateInstacne<EditRight>() }
             };
 

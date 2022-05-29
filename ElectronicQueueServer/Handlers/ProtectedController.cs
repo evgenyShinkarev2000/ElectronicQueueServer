@@ -1,10 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.WebSockets;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Threading.Tasks;
 
 namespace ElectronicQueueServer.Handlers
 {
+    /// <summary>
+    /// При вызове метода из _origiinController безполезен.
+    /// </summary>
     public class ProtectedController<T> : IWSController where T : class, IWSController
     {
         public string Role { get; private set; }
@@ -13,11 +18,12 @@ namespace ElectronicQueueServer.Handlers
         {
             Role = controllerFactory.Role;
             _originController = (T)Activator.CreateInstance(typeof(T), controllerFactory);
+            // Рассмотреть TypeBuilder
         }
 
         public async Task Handle(IEnumerable<string> instructions, object data)
         {
-            CheckAccessClass();
+            CheckAccessMethod(nameof(this.Handle));
             await _originController.Handle(instructions, data);
         }
 
