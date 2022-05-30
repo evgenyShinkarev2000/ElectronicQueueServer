@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 namespace ElectronicQueueServer.Models
 {
     // отправляется на фронт, чтобы изменить стили объекта
+    // BsonId и BsonRepresentation нужно убрать
     public class LockedItem
     {
         [BsonId(IdGenerator = typeof(StringObjectIdGenerator))]
@@ -29,7 +30,7 @@ namespace ElectronicQueueServer.Models
 
         public LockedItem(string itemId, string status)
         {
-            this.ItemId = ItemId;
+            this.ItemId = itemId; // написал ItemId, дебажил 30 минут
             this.Status = status;
         }
 

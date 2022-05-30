@@ -24,12 +24,12 @@ namespace ElectronicQueueServer.Handlers.WSUser
         [RoleValidator(new[] { "ADMIN" })]
         public async Task Delete()
         {
-            var wasUnlocked = this._lockManeger.Unlock(_webSocket, _lockedItem.ItemId.ToString());
+            var wasUnlocked = this._lockManeger.Unlock(_webSocket, _lockedItem.ItemId);
             if (wasUnlocked)
             {
                 await this._handler.SendMessageToAllExcept(_webSocket, new WSMessageToClient(
                     new[] { "update", "editRight" },
-                    new LockedItem(_lockedItem.ItemId.ToString(), LockedItem.LockedStatus.Free)));
+                    new LockedItem(_lockedItem.ItemId, LockedItem.LockedStatus.Free)));
             }
         }
 
@@ -54,13 +54,13 @@ namespace ElectronicQueueServer.Handlers.WSUser
 
         public async Task Post()
         {
-            var canUserEdit = this._lockManeger.TryLock(_webSocket, this._lockedItem.ItemId.ToString());
+            var canUserEdit = this._lockManeger.TryLock(_webSocket, this._lockedItem.ItemId);
             await this._handler.SendMessage(_webSocket, new WSMessageToClient(new[] { "post", "editRight" }, canUserEdit));
             if (canUserEdit)
             {
                 await this._handler.SendMessageToAllExcept(_webSocket, new WSMessageToClient(
                     new[] { "update", "editRight" },
-                    new LockedItem(this._lockedItem.ItemId.ToString(), LockedItem.LockedStatus.Lock)));
+                    new LockedItem(this._lockedItem.ItemId, LockedItem.LockedStatus.Lock)));
             }
         }
 
